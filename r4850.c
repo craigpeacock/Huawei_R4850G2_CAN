@@ -181,7 +181,7 @@ int r4850_set_voltage(int s, float voltage)
 	frame.can_id = 0x108180FE | CAN_EFF_FLAG;
 	frame.can_dlc = 8;
 	frame.data[0] = 0x01;
-	frame.data[1] = 0x00;	// We only set temporary while testing
+	frame.data[1] = 0x01;	// Set Default
 	frame.data[2] = 0x00;
 	frame.data[3] = 0x00;
 	frame.data[4] = 0x00;
@@ -205,7 +205,7 @@ int r4850_set_current(int s, float current)
 	frame.can_id = 0x108180FE | CAN_EFF_FLAG;
 	frame.can_dlc = 8;
 	frame.data[0] = 0x01;
-	frame.data[1] = 0x03; // We only set temporary while testing
+	frame.data[1] = 0x04; // Set Default
 	frame.data[2] = 0x00;
 	frame.data[3] = 0x00;
 	frame.data[4] = 0x00;
@@ -219,6 +219,32 @@ int r4850_set_current(int s, float current)
 	}
 }
 
+int r4850_ack(uint8_t *frame)
+{
+	bool error = frame[0] & 0x20;
+	uint32_t value = __builtin_bswap32(*(uint32_t *)&frame[4]);
+
+	switch (frame[1]){
+		case 0x00:
+			printf("%s setting temp voltage to %.02fV\n", error?"Error":"Success", value / 1024.0);
+			break;
+		case 0x01:
+			printf("%s setting default voltage to %.02fV\n", error?"Error":"Success", value / 1024.0);
+			break;
+		case 0x02:
+			printf("%s setting overvoltage protection to %.02fV\n", error?"Error":"Success", value / 1024.0);
+			break;
+		case 0x03:
+			printf("%s setting temp current to %.02fA\n", error?"Error":"Success", value / 30.0);
+			break;
+		case 0x04:
+			printf("%s setting default current to %.02fA\n", error?"Error":"Success", value / 30.0);
+			break;
+		default:
+			printf("%s setting unknown parameter (0x%02X)\n", error?"Error":"Success", frame[1]);
+			break;
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -313,6 +339,11 @@ int main(int argc, char **argv)
 
 			case 0x1081D27F:
 				r4850_description((uint8_t *)&frame.data);
+				break;
+
+			case 0x1081807E:
+				/* Acknowledgement */
+				r4850_ack((uint8_t *)&frame.data);
 				break;
 
 			case 0x108111FE:
