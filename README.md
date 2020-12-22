@@ -1,12 +1,15 @@
 # Huawei R4850G2 Rectifier / 53.5VDC 3000W Power Supply.
 This is example Linux ANSI-C code to communicate with the Huawei R4850 Rectifier / Power Supply via CAN.
+* [Huawei R4850 Rectifier Data Sheet](https://github.com/craigpeacock/Huawei_R4850_CAN/raw/main/R4850G2%20Rectifier%20Data%20Sheet.pdf)
+* [Huawei R4850 Rectifier User Manual V1.4](https://github.com/craigpeacock/Huawei_R4850_CAN/raw/main/R4850G2%20Rectifier%20User%20Manual%20V1.4.pdf)
+
 
 This code can be executed on the following targets:
  * Beaglebone Black: https://www.beyondlogic.org/adding-can-to-the-beaglebone-black/
  * Raspberry PI: https://www.beyondlogic.org/adding-can-controller-area-network-to-the-raspberry-pi/
  * Linux Desktop with suitable SocketCAN interface (i.e. PCAN-USB from Peak Systems)
 
-By default the Huawei rectifier communicates at 1250kbps with extended 29-bit addressing. Use the following to set up your link:
+By default the Huawei rectifier communicates at 125kbps with extended 29-bit addressing. Use the following to set up your link:
 
 ```
 $ sudo /sbin/ip link set can0 up type can bitrate 125000
@@ -103,6 +106,7 @@ The rectifier will then return the following packets:
 This work is based on esp32 code developed by BotoX
 
 https://github.com/BotoX/huawei-r48xx-esp32
+
 https://github.com/BotoX/r4830g2-tiva
 
 
