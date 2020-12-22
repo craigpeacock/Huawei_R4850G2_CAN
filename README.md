@@ -1,5 +1,5 @@
 # Huawei R4850G2 Rectifier / 53.5VDC 3000W Power Supply.
-This is example Linux ANSI C code to communicate with Huawei R4850 Power Supply via CAN.
+This is example Linux ANSI C code to communicate with the Huawei R4850 Rectifier / Power Supply via CAN.
 
 This code can be executed on the following targets:
  * Beaglebone Black: https://www.beyondlogic.org/adding-can-to-the-beaglebone-black/
@@ -71,7 +71,7 @@ Unknown parameter 0x81, 0x07B2
 Output Current 1.78A
 ```
 
-# Protocol
+## Protocol
 
 The data above can be requested by sending:
 
@@ -98,9 +98,10 @@ The rectifier will then return the following packets:
   can0  1081407E   [8]  01 83 00 10 00 00 00 00
 ```
 
-# Acknowledgements
+## Acknowledgements
 
 This work is based on esp32 code developed by BotoX
+
 https://github.com/BotoX/huawei-r48xx-esp32
 https://github.com/BotoX/r4830g2-tiva
 
