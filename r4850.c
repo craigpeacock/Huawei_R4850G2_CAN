@@ -11,15 +11,17 @@
 #include <linux/can.h>
 #include <linux/can/raw.h>
 
-#define R48xx_DATA_INPUT_POWER	0x70
+#define R48xx_DATA_INPUT_POWER		0x70
 #define R48xx_DATA_INPUT_FREQ		0x71
 #define R48xx_DATA_INPUT_CURRENT	0x72
-#define R48xx_DATA_OUTPUT_POWER	0x73
+#define R48xx_DATA_OUTPUT_POWER		0x73
 #define R48xx_DATA_EFFICIENCY		0x74
 #define R48xx_DATA_OUTPUT_VOLTAGE	0x75
 #define R48xx_DATA_OUTPUT_CURRENT_MAX	0x76
 #define R48xx_DATA_INPUT_VOLTAGE	0x78
 #define R48xx_DATA_OUTPUT_TEMPERATURE	0x7F
+#define R48xx_DATA_INPUT_TEMPERATURE	0x80
+#define R48xx_DATA_OUTPUT_CURRENT	0x82
 
 int r4850_data(uint8_t *frame)
 {
@@ -60,14 +62,50 @@ int r4850_data(uint8_t *frame)
 			break;
 
 		case R48xx_DATA_OUTPUT_TEMPERATURE:
-			printf("Temperature %.02fDegC\r\n", value / 1024.0);
+			printf("Output Temperature %.02fDegC\r\n", value / 1024.0);
+			break;
+
+		case R48xx_DATA_INPUT_TEMPERATURE:
+			printf("Input Temperature %.02fDegC\r\n", value / 1024.0);
+			break;
+
+		case R48xx_DATA_OUTPUT_CURRENT:
+			printf("Output Current %.02fA\r\n", value / 1024.0);
 			break;
 
 		default:
+			printf("Unknown parameter 0x%02X, 0x%04X\r\n",frame[1], value);
 			break;
 
 	}
 }
+
+int r4850_description(uint8_t *frame)
+{
+	printf("%c%c%c%c%c%c", frame[2], frame[3], frame[4], frame[5], frame[6], frame[7]);
+}
+
+int r4850_request_data(int s)
+{
+	struct can_frame frame;
+
+	frame.can_id = 0x108040FE | CAN_EFF_FLAG;
+	frame.can_dlc = 8;
+	frame.data[0] = 0;
+	frame.data[1] = 0;
+	frame.data[2] = 0;
+	frame.data[3] = 0;
+	frame.data[4] = 0;
+	frame.data[5] = 0;
+	frame.data[6] = 0;
+	frame.data[7] = 0;
+
+	if (write(s, &frame, sizeof(struct can_frame)) != sizeof(struct can_frame)) {
+		perror("Write");
+		return 1;
+	}
+}
+
 
 int main(int argc, char **argv)
 {
@@ -97,6 +135,8 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	r4850_request_data(s);
+
 	do {
 
 		nbytes = read(s, &frame, sizeof(struct can_frame));
@@ -117,6 +157,23 @@ int main(int argc, char **argv)
 			case 0x1081407F:
 				r4850_data((uint8_t *)&frame.data);
 				break;
+
+			case 0x1081D27F:
+				r4850_description((uint8_t *)&frame.data);
+				break;
+
+			case 0x108111FE:
+			case 0x1001117E:
+			case 0x100011FE:
+			case 0x108081FE:
+				break;
+
+			default:
+				printf("Unknown frame 0x%03X [%d] ",(frame.can_id & 0x1FFFFFFF), frame.can_dlc);
+				for (i = 0; i < frame.can_dlc; i++)
+					printf("%02X ",frame.data[i]);
+				printf("\r\n");
+
 		}
 
 	} while(1);
