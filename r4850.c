@@ -106,7 +106,7 @@ int r4850_data(uint8_t *frame, struct RectifierParameters *rp)
 
 		case R48xx_DATA_OUTPUT_CURRENT_MAX:
 			//printf("Output Current (Max) %.02fA\r\n", value / 30.0);
-			rp->max_output_current = value / 1024.0;
+			rp->max_output_current = value / 30.0;
 			break;
 
 		case R48xx_DATA_INPUT_VOLTAGE:
