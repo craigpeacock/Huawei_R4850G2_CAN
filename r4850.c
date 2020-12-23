@@ -23,8 +23,8 @@
 #define R48xx_DATA_INPUT_VOLTAGE	0x78
 #define R48xx_DATA_OUTPUT_TEMPERATURE	0x7F
 #define R48xx_DATA_INPUT_TEMPERATURE	0x80
-#define R48xx_DATA_OUTPUT_CURRENT1	0x81
-#define R48xx_DATA_OUTPUT_CURRENT	0x82
+#define R48xx_DATA_OUTPUT_CURRENT	0x81
+#define R48xx_DATA_OUTPUT_CURRENT1	0x82
 
 struct RectifierParameters
 {
@@ -66,71 +66,60 @@ int r4850_print_parameters(struct RectifierParameters *rp)
 	printf("Input Temperature %.01f DegC\n", rp->input_temp);
 	printf("Output Temperature %.01f DegC\n", rp->output_temp);
 	printf("Efficiency %.02f%%\n", rp->efficiency);
+	printf("\n");
 }
 
 int r4850_data(uint8_t *frame, struct RectifierParameters *rp)
 {
-
 	uint32_t value = __builtin_bswap32(*(uint32_t *)&frame[4]);
-	//printf("Get Data: %02X, Value %04X\r\n",frame[1], value);
 
 	switch (frame[1]) {
 		case R48xx_DATA_INPUT_POWER:
-			//printf("Input Power %.02fW\r\n", value / 1024.0);
 			rp->input_power = value / 1024.0;
 			break;
+
 		case R48xx_DATA_INPUT_FREQ:
-			//printf("Input Frequency %.02fHz\r\n", value / 1024.0);
 			rp->input_frequency = value / 1024.0;
 			break;
 
 		case R48xx_DATA_INPUT_CURRENT:
-			//printf("Input Current %.02fA\r\n", value / 1024.0);
 			rp->input_current = value / 1024.0;
 			break;
 
 		case R48xx_DATA_OUTPUT_POWER:
-			//printf("Output Power %.02fW\r\n", value / 1024.0);
 			rp->output_power = value / 1024.0;
 			break;
 
 		case R48xx_DATA_EFFICIENCY:
-			//printf("Efficiency %.02f%%\r\n", value / 1024.0);
 			rp->efficiency = value / 1024.0;
 			break;
 
 		case R48xx_DATA_OUTPUT_VOLTAGE:
-			//printf("Output Voltage %.02fV\r\n", value / 1024.0);
 			rp->output_voltage = value / 1024.0;
 			break;
 
 		case R48xx_DATA_OUTPUT_CURRENT_MAX:
-			//printf("Output Current (Max) %.02fA\r\n", value / 30.0);
 			rp->max_output_current = value / 30.0;
 			break;
 
 		case R48xx_DATA_INPUT_VOLTAGE:
-			//printf("Input Voltage %.02fV\r\n", value / 1024.0);
 			rp->input_voltage = value / 1024.0;
 			break;
 
 		case R48xx_DATA_OUTPUT_TEMPERATURE:
-			//printf("Output Temperature %.02fDegC\r\n", value / 1024.0);
 			rp->output_temp = value / 1024.0;
 			break;
 
 		case R48xx_DATA_INPUT_TEMPERATURE:
-			//printf("Input Temperature %.02fDegC\r\n", value / 1024.0);
 			rp->input_temp = value / 1024.0;
 			break;
 
 		case R48xx_DATA_OUTPUT_CURRENT1:
-			printf("Output Current(1) %.02fA\r\n", value / 1024.0);
+			//printf("Output Current(1) %.02fA\r\n", value / 1024.0);
 			//rp->output_current = value / 1024.0;
 			break;
 
 		case R48xx_DATA_OUTPUT_CURRENT:
-			//printf("Output Current %.02fA\r\n", value / 1024.0);
 			rp->output_current = value / 1024.0;
 
 			/* This is normally the last parameter received. Print */
@@ -263,7 +252,7 @@ int main(int argc, char **argv)
 	int opt;
 	char *ptr;
 
-	printf("Huawei R4850G2 53.5VDC 3000W Rectifier\nConfiguration Utility\n");
+	printf("\nHuawei R4850G2 53.5VDC 3000W Rectifier\nConfiguration Utility\n");
 
 	while ((opt = getopt(argc, argv, "v:c:?")) != -1) {
 		switch (opt) {
