@@ -6,6 +6,9 @@
 #include <stdbool.h>
 #include <libgen.h>
 
+#include <signal.h>
+#include <time.h>
+
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -52,7 +55,7 @@ static void print_usage(char *prg)
 
 int r4850_print_parameters(struct RectifierParameters *rp)
 {
-	printf("\n");
+	//printf("\033[2J\n");
 	printf("Input Voltage %.02fV @ %.02fHz\n",
 		rp->input_voltage, rp->input_frequency);
 	printf("Input Current %.02fA\n", rp->input_current);
@@ -115,7 +118,7 @@ int r4850_data(uint8_t *frame, struct RectifierParameters *rp)
 			break;
 
 		case R48xx_DATA_OUTPUT_CURRENT1:
-			//printf("Output Current(1) %.02fA\r\n", value / 1024.0);
+			printf("Output Current(1) %.02fA\r\n", value / 1024.0);
 			//rp->output_current = value / 1024.0;
 			break;
 
@@ -164,7 +167,7 @@ int r4850_set_voltage(int s, float voltage)
 {
 	struct can_frame frame;
 
-	uint16_t value = voltage * 1020;
+	uint16_t value = voltage * 1024;
 	//printf("Voltage = 0x%04X\n",value);
 
 	frame.can_id = 0x108180FE | CAN_EFF_FLAG;
@@ -235,6 +238,10 @@ int r4850_ack(uint8_t *frame)
 	}
 }
 
+void thread_handler(union sigval sv) {
+	r4850_request_data(sv.sival_int);
+}
+
 int main(int argc, char **argv)
 {
 	int s, i;
@@ -303,6 +310,22 @@ int main(int argc, char **argv)
 	if (setcurrent)
 		r4850_set_current(s, current);
 
+	timer_t timerid;
+
+	struct sigevent sev;
+	memset(&sev, 0, sizeof(struct sigevent));
+	sev.sigev_notify = SIGEV_THREAD;
+	sev.sigev_notify_function = &thread_handler;
+	//sev.sigev_value.sival_ptr = &data;
+	sev.sigev_value.sival_int = s;
+	timer_create(CLOCK_REALTIME, &sev, &timerid);
+
+        struct itimerspec trigger;
+        memset(&trigger, 0, sizeof(struct itimerspec));
+        trigger.it_value.tv_sec = 1;
+        trigger.it_interval.tv_sec = 1;
+        timer_settime(timerid, 0, &trigger, NULL);
+
 	r4850_request_data(s);
 
 	do {
@@ -325,6 +348,10 @@ int main(int argc, char **argv)
 			case 0x1081407F:
 				r4850_data((uint8_t *)&frame.data, &rp);
 				break;
+				
+			case 0x1081407E:
+				/* Acknowledgment */
+				break;
 
 			case 0x1081D27F:
 				r4850_description((uint8_t *)&frame.data);
@@ -339,6 +366,7 @@ int main(int argc, char **argv)
 			case 0x1001117E:
 			case 0x100011FE:
 			case 0x108081FE:
+			
 				break;
 
 			default:
@@ -355,6 +383,8 @@ int main(int argc, char **argv)
 		perror("Close");
 		return 1;
 	}
+
+	timer_delete(timerid);
 
 	return 0;
 }
