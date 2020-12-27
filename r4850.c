@@ -118,7 +118,7 @@ int r4850_data(uint8_t *frame, struct RectifierParameters *rp)
 			break;
 
 		case R48xx_DATA_OUTPUT_CURRENT1:
-			printf("Output Current(1) %.02fA\r\n", value / 1024.0);
+			//printf("Output Current(1) %.02fA\r\n", value / 1024.0);
 			//rp->output_current = value / 1024.0;
 			break;
 
@@ -147,6 +147,7 @@ int r4850_request_data(int s)
 	struct can_frame frame;
 
 	frame.can_id = 0x108040FE | CAN_EFF_FLAG;
+	/* 0x108140FE also works */
 	frame.can_dlc = 8;
 	frame.data[0] = 0;
 	frame.data[1] = 0;
@@ -362,11 +363,26 @@ int main(int argc, char **argv)
 				r4850_ack((uint8_t *)&frame.data);
 				break;
 
-			case 0x108111FE:
 			case 0x1001117E:
+				/* Normally 00 01 00 0s 00 00 xx xx */
+				/* xx = Whr meter, send every 377mS */
+				/* s = 1 when output disabled */
+				break;
+
 			case 0x100011FE:
+				/* Normally 00 02 00 00 00 00 00 00 */
+				break;
+
+			case 0x108111FE:
+				/* Normally 00 03 00 00 00 0s 00 00 */
+				/* s = 1 when output disabled */
+				//if (frame.data[5] == 1)
+				//	printf("Output Enabled\n");
+				//else 	printf("Output Disabled\n");
+				break;
+				
 			case 0x108081FE:
-			
+				/* Normally 01 13 00 01 00 00 00 00 */
 				break;
 
 			default:
