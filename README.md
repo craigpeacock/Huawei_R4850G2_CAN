@@ -1,8 +1,6 @@
 # Huawei R4850G2 Rectifier / 53.5VDC 3000W Power Supply.
-This is example Linux ANSI-C code to communicate with the Huawei R4850 Rectifier / Power Supply via CAN.
-* [Huawei R4850 Rectifier Data Sheet](https://github.com/craigpeacock/Huawei_R4850_CAN/raw/main/R4850G2%20Rectifier%20Data%20Sheet.pdf)
-* [Huawei R4850 Rectifier User Manual V1.4](https://github.com/craigpeacock/Huawei_R4850_CAN/raw/main/R4850G2%20Rectifier%20User%20Manual%20V1.4.pdf)
-
+This is example Linux ANSI-C code to communicate with the Huawei R4850 Rectifier / Power Supply via CAN. For details on the PSU and wiring, visit:
+* [Review: Huawei R4850G2 Power Supply 53.5VDC, 3kW with CAN](https://www.beyondlogic.org/review-huawei-r4850g2-power-supply-53-5vdc-3kw/)
 
 This code can be executed on the following targets:
  * Beaglebone Black: https://www.beyondlogic.org/adding-can-to-the-beaglebone-black/
@@ -14,6 +12,41 @@ By default the Huawei rectifier communicates at 125kbps with extended 29-bit add
 ```
 $ sudo /sbin/ip link set can0 up type can bitrate 125000
 ```
+To view the current statistics, run: (Where can0 is your can device)
+
+```
+$ ./r4850 can0
+
+Huawei R4850G2 53.5VDC 3000W Rectifier
+Configuration Utility
+Input Voltage 237.88V @ 50.03Hz
+Input Current 0.41A
+Input Power 98.18W
+
+Output Voltage 47.98V
+Output Current 1.97A of 37.70A Max
+Output Power 89.36W
+
+Input Temperature 27.0 DegC
+Output Temperature 27.0 DegC
+Efficiency 0.91%
+```
+
+To change the preset voltage and current, use the -v & -c switches as per below.
+
+```
+Huawei R4850G2 53.5VDC 3000W Rectifier
+Configuration Utility
+Usage: r4850 [options] <CAN interface>
+Options:
+        -v <voltage>    (Set Power Supply Voltage)
+        -c <current>    (Set Maximum Current)
+```
+
+This changes the off-line (non-volatile) settings. Please see
+https://www.beyondlogic.org/review-huawei-r4850g2-power-supply-53-5vdc-3kw/#modes_of_operation
+
+## Debugging
 
 The rectifier will send out unsolcitied messages and this is a good way to ensure your hardware is working correctly. Run candump can0 (from CAN-utils) and verify you see frames similar to below (This dump is from power-up) :
 
@@ -52,26 +85,6 @@ $ candump can0
   can0  108111FE   [8]  00 03 00 00 00 00 00 00
   can0  1001117E   [8]  00 01 00 01 00 00 00 00
   can0  108111FE   [8]  00 03 00 00 00 00 00 00
-```
-
-Now run the ./r4850 example code:
-
-```
-$ ./r4850
-R4850G2 CAN Interface Example
-Unknown parameter 0x0E, 0x000A
-Input Power 104.32W
-Input Frequency 50.03Hz
-Input Current 0.43A
-Output Power 94.95W
-Efficiency 0.91%
-Output Voltage 53.39V
-Output Current (Max) 37.70A
-Input Voltage 240.12V
-Output Temperature 22.00DegC
-Input Temperature 29.00DegC
-Unknown parameter 0x81, 0x07B2
-Output Current 1.78A
 ```
 
 ## Protocol
