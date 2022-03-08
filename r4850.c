@@ -1,6 +1,8 @@
 /*
  * Huawei R4850G2 53.5VDC 3000W Rectifier Configuration Utility
  * Copyright (C) 2021 - 2022 Craig Peacock
+ * Original Repository
+ * https://github.com/craigpeacock/Huawei_R4850G2_CAN
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -35,6 +37,16 @@
 
 #include <linux/can.h>
 #include <linux/can/raw.h>
+
+/*
+ * Some references on the Web suggest the maximum current multiplier
+ * should be set to 30 (decimal). With my unit, it appears 22 provides
+ * a more accurate current limit. It is not known if this changes per
+ * unit. Please provide feedback via GitHub issues:
+ * https://github.com/craigpeacock/Huawei_R4850G2_CAN/issues
+ */
+
+#define MAX_CURRENT_MULTIPLIER		22
 
 #define R48xx_DATA_INPUT_POWER		0x70
 #define R48xx_DATA_INPUT_FREQ		0x71
@@ -123,7 +135,7 @@ int r4850_data(uint8_t *frame, struct RectifierParameters *rp)
 			break;
 
 		case R48xx_DATA_OUTPUT_CURRENT_MAX:
-			rp->max_output_current = value / 30.0;
+			rp->max_output_current = value / MAX_CURRENT_MULTIPLIER;
 			break;
 
 		case R48xx_DATA_INPUT_VOLTAGE:
@@ -218,7 +230,7 @@ int r4850_set_current(int s, float current, bool nonvolatile)
 {
 	struct can_frame frame;
 
-	uint16_t value = current * 30.0;
+	uint16_t value = current * MAX_CURRENT_MULTIPLIER;
 	//printf("Current = 0x%04X\n",value);
 
 	uint8_t command;
@@ -259,10 +271,10 @@ int r4850_ack(uint8_t *frame)
 			printf("%s setting overvoltage protection to %.02fV\n", error?"Error":"Success", value / 1024.0);
 			break;
 		case 0x03:
-			printf("%s setting on-line current to %.02fA\n", error?"Error":"Success", value / 30.0);
+			printf("%s setting on-line current to %.02fA\n", error?"Error":"Success", (float) value / MAX_CURRENT_MULTIPLIER);
 			break;
 		case 0x04:
-			printf("%s setting non-volatile (off-line) current to %.02fA\n", error?"Error":"Success", value / 30.0);
+			printf("%s setting non-volatile (off-line) current to %.02fA\n", error?"Error":"Success", (float) value / MAX_CURRENT_MULTIPLIER);
 			break;
 		default:
 			printf("%s setting unknown parameter (0x%02X)\n", error?"Error":"Success", frame[1]);
