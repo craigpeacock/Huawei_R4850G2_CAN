@@ -74,6 +74,7 @@ struct RectifierParameters
 	float max_output_current;
 	float output_power;
 	float output_temp;
+	float amp_hour;
 };
 
 static void print_usage(char *prg)
@@ -98,7 +99,7 @@ int r4850_print_parameters(struct RectifierParameters *rp)
 	printf("Output Voltage %.02fV\n", rp->output_voltage);
 	printf("Output Current %.02fA of %.02fA Max\n",
 		rp->output_current, rp->max_output_current);
-	printf("Output Power %.02fW\n", rp->output_power);
+	printf("Output Power %.02fW, %.03fAh\n", rp->output_power, rp->amp_hour / 3600);
 	printf("\n");
 	printf("Input Temperature %.01f DegC\n", rp->input_temp);
 	printf("Output Temperature %.01f DegC\n", rp->output_temp);
@@ -168,6 +169,13 @@ int r4850_data(uint8_t *frame, struct RectifierParameters *rp)
 			break;
 
 	}
+}
+
+int r4850_Ahr(uint8_t *frame, struct RectifierParameters *rp)
+{
+	uint16_t value = __builtin_bswap16(*(uint16_t *)&frame[6]);
+	//printf("Instantaneous current = %.02fA\r\n", (float)value / 20);
+	rp->amp_hour += (((float)value / 20) * 0.377);
 }
 
 int r4850_description(uint8_t *frame)
@@ -296,6 +304,8 @@ int main(int argc, char **argv)
 	struct can_frame frame;
 	struct RectifierParameters rp;
 
+	rp.amp_hour = 0;
+
 	float voltage;
 	bool setvoltage = false;
 	float current;
@@ -419,6 +429,7 @@ int main(int argc, char **argv)
 				break;
 
 			case 0x1001117E:
+				r4850_Ahr((uint8_t *)&frame.data, &rp);
 				/* Normally 00 01 00 0s 00 00 xx xx */
 				/* xx = Whr meter, send every 377mS */
 				/* s = 1 when output disabled */
