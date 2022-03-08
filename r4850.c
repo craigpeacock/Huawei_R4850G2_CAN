@@ -6,12 +6,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 3
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -70,12 +70,14 @@ static void print_usage(char *prg)
 	fprintf(stderr, "Options:\n");
 	fprintf(stderr, "	-v <voltage>	(Set Power Supply Voltage)\n");
 	fprintf(stderr, "	-c <current>	(Set Maximum Current)\n");
+	fprintf(stderr, "	-s              (Save settings to non-volatile memory/off-line)\n");
 	fprintf(stderr, "\n");
 }
 
 int r4850_print_parameters(struct RectifierParameters *rp)
 {
 	//printf("\033[2J\n");
+	printf("\n");
 	printf("Input Voltage %.02fV @ %.02fHz\n",
 		rp->input_voltage, rp->input_frequency);
 	printf("Input Current %.02fA\n", rp->input_current);
@@ -89,7 +91,6 @@ int r4850_print_parameters(struct RectifierParameters *rp)
 	printf("Input Temperature %.01f DegC\n", rp->input_temp);
 	printf("Output Temperature %.01f DegC\n", rp->output_temp);
 	printf("Efficiency %.02f%%\n", rp->efficiency);
-	printf("\n");
 }
 
 int r4850_data(uint8_t *frame, struct RectifierParameters *rp)
@@ -184,17 +185,22 @@ int r4850_request_data(int s)
 	}
 }
 
-int r4850_set_voltage(int s, float voltage)
+int r4850_set_voltage(int s, float voltage, bool nonvolatile)
 {
 	struct can_frame frame;
 
 	uint16_t value = voltage * 1024;
 	//printf("Voltage = 0x%04X\n",value);
 
+	uint8_t command;
+
+	if (nonvolatile) command = 0x01;	// Off-line mode
+	else		 command = 0x00;	// On-line mode
+
 	frame.can_id = 0x108180FE | CAN_EFF_FLAG;
 	frame.can_dlc = 8;
 	frame.data[0] = 0x01;
-	frame.data[1] = 0x01;	// Set Default
+	frame.data[1] = command;
 	frame.data[2] = 0x00;
 	frame.data[3] = 0x00;
 	frame.data[4] = 0x00;
@@ -208,17 +214,22 @@ int r4850_set_voltage(int s, float voltage)
 	}
 }
 
-int r4850_set_current(int s, float current)
+int r4850_set_current(int s, float current, bool nonvolatile)
 {
 	struct can_frame frame;
 
 	uint16_t value = current * 30.0;
 	//printf("Current = 0x%04X\n",value);
 
+	uint8_t command;
+
+	if (nonvolatile) command = 0x04;	// Off-line mode
+	else		 command = 0x03;	// On-line mode
+
 	frame.can_id = 0x108180FE | CAN_EFF_FLAG;
 	frame.can_dlc = 8;
 	frame.data[0] = 0x01;
-	frame.data[1] = 0x04; // Set Default
+	frame.data[1] = command;
 	frame.data[2] = 0x00;
 	frame.data[3] = 0x00;
 	frame.data[4] = 0x00;
@@ -239,19 +250,19 @@ int r4850_ack(uint8_t *frame)
 
 	switch (frame[1]){
 		case 0x00:
-			printf("%s setting temp voltage to %.02fV\n", error?"Error":"Success", value / 1024.0);
+			printf("%s setting on-line voltage to %.02fV\n", error?"Error":"Success", value / 1024.0);
 			break;
 		case 0x01:
-			printf("%s setting default voltage to %.02fV\n", error?"Error":"Success", value / 1024.0);
+			printf("%s setting non-volatile (off-line) voltage to %.02fV\n", error?"Error":"Success", value / 1024.0);
 			break;
 		case 0x02:
 			printf("%s setting overvoltage protection to %.02fV\n", error?"Error":"Success", value / 1024.0);
 			break;
 		case 0x03:
-			printf("%s setting temp current to %.02fA\n", error?"Error":"Success", value / 30.0);
+			printf("%s setting on-line current to %.02fA\n", error?"Error":"Success", value / 30.0);
 			break;
 		case 0x04:
-			printf("%s setting default current to %.02fA\n", error?"Error":"Success", value / 30.0);
+			printf("%s setting non-volatile (off-line) current to %.02fA\n", error?"Error":"Success", value / 30.0);
 			break;
 		default:
 			printf("%s setting unknown parameter (0x%02X)\n", error?"Error":"Success", frame[1]);
@@ -277,12 +288,13 @@ int main(int argc, char **argv)
 	bool setvoltage = false;
 	float current;
 	bool setcurrent = false;
+	bool nonvolatile = false;
 	int opt;
 	char *ptr;
 
-	printf("\nHuawei R4850G2 53.5VDC 3000W Rectifier\nConfiguration Utility\n");
+	printf("\nHuawei R4850G2 53.5VDC 3000W Rectifier Configuration Utility V1.1\nhttp://www.beyondlogic.org\n");
 
-	while ((opt = getopt(argc, argv, "v:c:?")) != -1) {
+	while ((opt = getopt(argc, argv, "v:c:?s")) != -1) {
 		switch (opt) {
 		case 'v':
 			voltage = atof(optarg);
@@ -294,6 +306,11 @@ int main(int argc, char **argv)
 			current = atof(optarg);
 			setcurrent = true;
 			printf("Setting current to %.02fA\n", current);
+			break;
+
+		case 's':
+			nonvolatile = true;
+			printf("Saving to non-volatile memory for off-line operation\n");
 			break;
 
 		default:
@@ -325,11 +342,17 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (setvoltage)
-		r4850_set_voltage(s, voltage);
+	if (setvoltage) {
+		r4850_set_voltage(s, voltage, false);
+		if (nonvolatile)
+			r4850_set_voltage(s, voltage, true);
+	}
 
-	if (setcurrent)
-		r4850_set_current(s, current);
+	if (setcurrent) {
+		r4850_set_current(s, current, false);
+		if (nonvolatile)
+			r4850_set_current(s, current, true);
+	}
 
 	timer_t timerid;
 
@@ -369,7 +392,7 @@ int main(int argc, char **argv)
 			case 0x1081407F:
 				r4850_data((uint8_t *)&frame.data, &rp);
 				break;
-				
+
 			case 0x1081407E:
 				/* Acknowledgment */
 				break;
@@ -400,7 +423,7 @@ int main(int argc, char **argv)
 				//	printf("Output Enabled\n");
 				//else 	printf("Output Disabled\n");
 				break;
-				
+
 			case 0x108081FE:
 				/* Normally 01 13 00 01 00 00 00 00 */
 				break;
