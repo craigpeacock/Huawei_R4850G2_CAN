@@ -17,33 +17,37 @@ To view the current statistics, run: (Where can0 is your can device)
 ```
 $ ./r4850 can0
 
-Huawei R4850G2 53.5VDC 3000W Rectifier
-Configuration Utility
+Huawei R4850G2 53.5VDC 3000W Rectifier Configuration Utility V1.1
+http://www.beyondlogic.org
+
 Input Voltage 237.88V @ 50.03Hz
 Input Current 0.41A
 Input Power 98.18W
 
 Output Voltage 47.98V
-Output Current 1.97A of 37.70A Max
+Output Current 1.97A of 37.70A Max, 0.002Ah
 Output Power 89.36W
 
 Input Temperature 27.0 DegC
 Output Temperature 27.0 DegC
-Efficiency 0.91%
+Efficiency 91.0%
 ```
 
 To change the preset voltage and current, use the -v & -c switches as per below.
 
 ```
-Huawei R4850G2 53.5VDC 3000W Rectifier
-Configuration Utility
+Huawei R4850G2 53.5VDC 3000W Rectifier Configuration Utility V1.1
+http://www.beyondlogic.org
 Usage: r4850 [options] <CAN interface>
 Options:
-        -v <voltage>    (Set Power Supply Voltage)
-        -c <current>    (Set Maximum Current)
+	-v <voltage>	(Set Power Supply Voltage)
+	-c <current>	(Set Maximum Current)
+	-s              (Save settings to non-volatile memory/off-line)
 ```
 
-This changes the off-line (non-volatile) settings. Please see
+The -v & -c switches set the on-line settings. Append -s to save to the off-line (non-volatile) settings.
+
+For details on on-line vs off-line settings, please see
 https://www.beyondlogic.org/review-huawei-r4850g2-power-supply-53-5vdc-3kw/#modes_of_operation
 
 ## Debugging
@@ -114,6 +118,10 @@ The rectifier will then return the following packets:
   can0  1081407E   [8]  01 83 00 10 00 00 00 00
 ```
 
+## User Feedback on Maximum Current
+
+This software contains a MAX_CURRENT_MULTIPLIER definition used to set (and report) the rectifier's maximum current. Some references on the Web suggest the maximum current multiplier should be set to 30 (decimal). With my unit, it would appear 20 provides a more accurate current limit when charging LiFePO4 battery packs. It is not known if this changes per unit, i.e. requires calibration. I welcome feedback on maximum current accuracy via GitHub issues.
+
 ## Acknowledgements
 
 This work is based on esp32 code developed by BotoX
@@ -121,6 +129,7 @@ This work is based on esp32 code developed by BotoX
 https://github.com/BotoX/huawei-r48xx-esp32
 
 https://github.com/BotoX/r4830g2-tiva
+
 
 
 
