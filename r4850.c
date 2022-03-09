@@ -97,9 +97,9 @@ int r4850_print_parameters(struct RectifierParameters *rp)
 	printf("Input Power %.02fW\n", rp->input_power);
 	printf("\n");
 	printf("Output Voltage %.02fV\n", rp->output_voltage);
-	printf("Output Current %.02fA of %.02fA Max\n",
-		rp->output_current, rp->max_output_current);
-	printf("Output Power %.02fW, %.03fAh\n", rp->output_power, rp->amp_hour / 3600);
+	printf("Output Current %.02fA of %.02fA Max, %.03fAh\n",
+		rp->output_current, rp->max_output_current, rp->amp_hour / 3600);
+	printf("Output Power %.02fW\n", rp->output_power);
 	printf("\n");
 	printf("Input Temperature %.01f DegC\n", rp->input_temp);
 	printf("Output Temperature %.01f DegC\n", rp->output_temp);
