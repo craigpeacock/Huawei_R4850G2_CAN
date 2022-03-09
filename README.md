@@ -5,7 +5,7 @@ This is example Linux ANSI-C code to communicate with the Huawei R4850 Rectifier
 This code can be executed on the following targets:
  * Beaglebone Black: https://www.beyondlogic.org/adding-can-to-the-beaglebone-black/
  * Raspberry PI: https://www.beyondlogic.org/adding-can-controller-area-network-to-the-raspberry-pi/
- * Linux Desktop with suitable SocketCAN interface (i.e. PCAN-USB from Peak Systems)
+ * Linux Desktop with suitable SocketCAN interface (i.e. [Inno-maker USB-CAN](https://www.inno-maker.com/product/usb-can/), PCAN-USB from Peak Systems)
 
 By default the Huawei rectifier communicates at 125kbps with extended 29-bit addressing. Use the following to set up your link:
 
