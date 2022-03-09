@@ -103,7 +103,7 @@ int r4850_print_parameters(struct RectifierParameters *rp)
 	printf("\n");
 	printf("Input Temperature %.01f DegC\n", rp->input_temp);
 	printf("Output Temperature %.01f DegC\n", rp->output_temp);
-	printf("Efficiency %.02f%%\n", rp->efficiency);
+	printf("Efficiency %.01f%%\n", rp->efficiency * 100);
 }
 
 int r4850_data(uint8_t *frame, struct RectifierParameters *rp)
