@@ -40,13 +40,13 @@
 
 /*
  * Some references on the Web suggest the maximum current multiplier
- * should be set to 30 (decimal). With my unit, it appears 22 provides
+ * should be set to 30 (decimal). With my unit, it appears 20 provides
  * a more accurate current limit. It is not known if this changes per
  * unit. Please provide feedback via GitHub issues:
  * https://github.com/craigpeacock/Huawei_R4850G2_CAN/issues
  */
 
-#define MAX_CURRENT_MULTIPLIER		22
+#define MAX_CURRENT_MULTIPLIER		20
 
 #define R48xx_DATA_INPUT_POWER		0x70
 #define R48xx_DATA_INPUT_FREQ		0x71
