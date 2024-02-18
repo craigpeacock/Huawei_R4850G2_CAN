@@ -1,7 +1,7 @@
 /*
  * Huawei R4850G2 53.5VDC 3000W Rectifier Configuration Utility
- * Copyright (C) 2021 - 2022 Craig Peacock
- * Original Repository
+ * Copyright (C) 2021 - 2024 Craig Peacock
+ * Original Repository:
  * https://github.com/craigpeacock/Huawei_R4850G2_CAN
  *
  * This program is free software; you can redistribute it and/or
@@ -39,27 +39,25 @@
 #include <linux/can/raw.h>
 
 /*
- * Some references on the Web suggest the maximum current multiplier
- * should be set to 30 (decimal). With my unit, it appears 20 provides
- * a more accurate current limit. It is not known if this changes per
- * unit. Please provide feedback via GitHub issues:
- * https://github.com/craigpeacock/Huawei_R4850G2_CAN/issues
+ * MAX_CURRENT is the maximum current output of the rectifer.
+ * e.g. R4850G2 is 50A
+ *      R4875G1 is 75A
+ * In the future we will obtain this value from the rectifier.
  */
+#define MAX_CURRENT	50
 
-#define MAX_CURRENT_MULTIPLIER		20
-
-#define R48xx_DATA_INPUT_POWER		0x70
-#define R48xx_DATA_INPUT_FREQ		0x71
-#define R48xx_DATA_INPUT_CURRENT	0x72
-#define R48xx_DATA_OUTPUT_POWER		0x73
-#define R48xx_DATA_EFFICIENCY		0x74
-#define R48xx_DATA_OUTPUT_VOLTAGE	0x75
-#define R48xx_DATA_OUTPUT_CURRENT_MAX	0x76
-#define R48xx_DATA_INPUT_VOLTAGE	0x78
-#define R48xx_DATA_OUTPUT_TEMPERATURE	0x7F
-#define R48xx_DATA_INPUT_TEMPERATURE	0x80
-#define R48xx_DATA_OUTPUT_CURRENT	0x81
-#define R48xx_DATA_OUTPUT_CURRENT1	0x82
+#define R48xx_DATA_INPUT_POWER			0x70
+#define R48xx_DATA_INPUT_FREQ			0x71
+#define R48xx_DATA_INPUT_CURRENT		0x72
+#define R48xx_DATA_OUTPUT_POWER			0x73
+#define R48xx_DATA_EFFICIENCY			0x74
+#define R48xx_DATA_OUTPUT_VOLTAGE		0x75
+#define R48xx_DATA_OUTPUT_CURRENT_MAX_PERCENT	0x76
+#define R48xx_DATA_INPUT_VOLTAGE		0x78
+#define R48xx_DATA_OUTPUT_TEMPERATURE		0x7F
+#define R48xx_DATA_INPUT_TEMPERATURE		0x80
+#define R48xx_DATA_OUTPUT_CURRENT		0x81
+#define R48xx_DATA_OUTPUT_CURRENT1		0x82
 
 struct RectifierParameters
 {
@@ -71,7 +69,7 @@ struct RectifierParameters
 	float efficiency;
 	float output_voltage;
 	float output_current;
-	float max_output_current;
+	float max_output_current_percent;
 	float output_power;
 	float output_temp;
 	float amp_hour;
@@ -97,8 +95,11 @@ int r4850_print_parameters(struct RectifierParameters *rp)
 	printf("Input Power %.02fW\n", rp->input_power);
 	printf("\n");
 	printf("Output Voltage %.02fV\n", rp->output_voltage);
-	printf("Output Current %.02fA of %.02fA Max, %.03fAh\n",
-		rp->output_current, rp->max_output_current, rp->amp_hour / 3600);
+	printf("Output Current %.02fA of %.02fA Max (%.01f%% of Capacity), %.03fAh\n",
+		rp->output_current,
+		rp->max_output_current_percent * MAX_CURRENT,
+		rp->max_output_current_percent * 100,
+		rp->amp_hour / 3600);
 	printf("Output Power %.02fW\n", rp->output_power);
 	printf("\n");
 	printf("Input Temperature %.01f DegC\n", rp->input_temp);
@@ -135,8 +136,8 @@ int r4850_data(uint8_t *frame, struct RectifierParameters *rp)
 			rp->output_voltage = value / 1024.0;
 			break;
 
-		case R48xx_DATA_OUTPUT_CURRENT_MAX:
-			rp->max_output_current = value / MAX_CURRENT_MULTIPLIER;
+		case R48xx_DATA_OUTPUT_CURRENT_MAX_PERCENT:
+			rp->max_output_current_percent = value / 1024.0;
 			break;
 
 		case R48xx_DATA_INPUT_VOLTAGE:
@@ -161,7 +162,6 @@ int r4850_data(uint8_t *frame, struct RectifierParameters *rp)
 
 			/* This is normally the last parameter received. Print */
 			r4850_print_parameters(rp);
-
 			break;
 
 		default:
@@ -238,9 +238,7 @@ int r4850_set_current(int s, float current, bool nonvolatile)
 {
 	struct can_frame frame;
 
-	uint16_t value = current * MAX_CURRENT_MULTIPLIER;
-	//printf("Current = 0x%04X\n",value);
-
+	uint16_t value = (current / MAX_CURRENT) * 1024.0;
 	uint8_t command;
 
 	if (nonvolatile) command = 0x04;	// Off-line mode
@@ -270,22 +268,41 @@ int r4850_ack(uint8_t *frame)
 
 	switch (frame[1]){
 		case 0x00:
-			printf("%s setting on-line voltage to %.02fV\n", error?"Error":"Success", value / 1024.0);
+			printf("%s setting on-line voltage to %.02fV\n",
+				error?"Error":"Success",
+				value / 1024.0);
 			break;
+
 		case 0x01:
-			printf("%s setting non-volatile (off-line) voltage to %.02fV\n", error?"Error":"Success", value / 1024.0);
+			printf("%s setting non-volatile (off-line) voltage to %.02fV\n",
+				error?"Error":"Success",
+				value / 1024.0);
 			break;
+
 		case 0x02:
-			printf("%s setting overvoltage protection to %.02fV\n", error?"Error":"Success", value / 1024.0);
+			printf("%s setting overvoltage protection to %.02fV\n",
+				error?"Error":"Success",
+				value / 1024.0);
 			break;
+
 		case 0x03:
-			printf("%s setting on-line current to %.02fA\n", error?"Error":"Success", (float) value / MAX_CURRENT_MULTIPLIER);
+			printf("%s setting on-line current to %.02fA (%.01f%% of Capacity)\n",
+				error?"Error":"Success",
+				(value / 1024.0) * MAX_CURRENT,
+				(value / 1024.0) * 100);
 			break;
+
 		case 0x04:
-			printf("%s setting non-volatile (off-line) current to %.02fA\n", error?"Error":"Success", (float) value / MAX_CURRENT_MULTIPLIER);
+			printf("%s setting non-volatile (off-line) current to %.02fA (%.01f%% of Capacity)\n",
+				error?"Error":"Success",
+				(value / 1024.0) * MAX_CURRENT,
+				(value / 1024.0) * 100);
 			break;
+
 		default:
-			printf("%s setting unknown parameter (0x%02X)\n", error?"Error":"Success", frame[1]);
+			printf("%s setting unknown parameter (0x%02X)\n",
+				error?"Error":"Success",
+				frame[1]);
 			break;
 	}
 }
@@ -314,7 +331,7 @@ int main(int argc, char **argv)
 	int opt;
 	char *ptr;
 
-	printf("\nHuawei R4850G2 53.5VDC 3000W Rectifier Configuration Utility V1.1\nhttp://www.beyondlogic.org\n");
+	printf("\nHuawei R4850G2 53.5VDC 3000W Rectifier Configuration Utility V1.2\nhttp://www.beyondlogic.org\n");
 
 	while ((opt = getopt(argc, argv, "v:c:?s")) != -1) {
 		switch (opt) {
@@ -386,11 +403,11 @@ int main(int argc, char **argv)
 	sev.sigev_value.sival_int = s;
 	timer_create(CLOCK_REALTIME, &sev, &timerid);
 
-        struct itimerspec trigger;
-        memset(&trigger, 0, sizeof(struct itimerspec));
-        trigger.it_value.tv_sec = 1;
-        trigger.it_interval.tv_sec = 1;
-        timer_settime(timerid, 0, &trigger, NULL);
+	struct itimerspec trigger;
+	memset(&trigger, 0, sizeof(struct itimerspec));
+	trigger.it_value.tv_sec = 1;
+	trigger.it_interval.tv_sec = 1;
+	timer_settime(timerid, 0, &trigger, NULL);
 
 	r4850_request_data(s);
 
